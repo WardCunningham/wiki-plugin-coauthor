@@ -1,0 +1,32 @@
+{
+  "name": "wiki-plugin-coauthor",
+  "version": "0.1.0",
+  "description": "Add description here.",
+  "keywords": [
+    "wiki",
+    "federated wiki",
+    "plugin"
+  ],
+  "scripts": {
+    "build": "npm run clean; npm run test; node --no-warnings scripts/build-client.js",
+    "about": "wiki -p 3010 -d . --security_legacy",
+    "clean": "rm client/coauthor.js client/coauthor.js.map",
+    "clean-about": "rm -r assets commons recycle status",
+    "prettier:format": "prettier --write './**/*.js'",
+    "prettier:check": "prettier --check ./**/*.js",
+    "test": "node --test"
+  },
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.x"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.28.0",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
+  }
+}

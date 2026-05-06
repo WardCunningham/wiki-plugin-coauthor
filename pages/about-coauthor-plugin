@@ -1,0 +1,77 @@
+{
+  "title": "About Coauthor Plugin",
+  "story": [
+    {
+      "type": "paragraph",
+      "id": "1f62e253593384fd",
+      "text": "We provide services to coauthors as they coordinate their individual work and manage the integration into a single volume."
+    },
+    {
+      "type": "coauthor",
+      "id": "f988dd21959fa27f",
+      "text": "Word Count\nSTORY story-unfolding\nSTATS words"
+    }
+  ],
+  "journal": [
+    {
+      "type": "create",
+      "item": {
+        "title": "About Coauthor Plugin",
+        "story": [
+          {
+            "type": "paragraph",
+            "id": "1f62e253593384fd",
+            "text": "Describe the plugin here."
+          },
+          {
+            "type": "coauthor",
+            "id": "f988dd21959fa27f",
+            "text": "SAMPLE Markup"
+          }
+        ]
+      },
+      "date": 1777907480489
+    },
+    {
+      "type": "edit",
+      "id": "1f62e253593384fd",
+      "item": {
+        "type": "paragraph",
+        "id": "1f62e253593384fd",
+        "text": "We provide services to coauthors as they coordinate their individual work and manage the integration into a single volume."
+      },
+      "date": 1777908129921
+    },
+    {
+      "type": "edit",
+      "id": "f988dd21959fa27f",
+      "item": {
+        "type": "coauthor",
+        "id": "f988dd21959fa27f",
+        "text": "STORY story-unfolding\nSTATS words"
+      },
+      "date": 1777908168330
+    },
+    {
+      "type": "edit",
+      "id": "f988dd21959fa27f",
+      "item": {
+        "type": "coauthor",
+        "id": "f988dd21959fa27f",
+        "text": "STORY story-unfolding\nSTATS words"
+      },
+      "date": 1777908215095
+    },
+    {
+      "type": "edit",
+      "id": "f988dd21959fa27f",
+      "item": {
+        "type": "coauthor",
+        "id": "f988dd21959fa27f",
+        "text": "Word Count\nSTORY story-unfolding\nSTATS words"
+      },
+      "date": 1778039426891
+    }
+  ],
+  "plugin": "coauthor"
+}

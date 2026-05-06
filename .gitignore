@@ -1,0 +1,10 @@
+assets
+client/coauthor.js
+client/coauthor.map
+commons
+coverage
+node_modules
+npm-debug.log
+meta-client.json
+recycle
+status
