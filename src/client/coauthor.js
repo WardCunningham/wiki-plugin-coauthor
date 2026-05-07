@@ -6,9 +6,12 @@ const expand = text => {
     .replace(/\*(.+?)\*/g, '<i>$1</i>')
 }
 
+let request
+
 const emit = async ($item, item) => {
   const { report, todo } = parse(item.text)
   console.log({ report, todo })
+  request = todo
   return $item.append(`
     <p style="background-color:#eee;padding:15px;">
       ${report.join('<br>')}<br>
@@ -26,7 +29,9 @@ const bind = ($item, item) => {
   const result = div.querySelector('#result')
   button.addEventListener('click', async event => {
     button.disabled = true
-    result.innerText = await count()
+    // result.innerText = await count()
+    const reply = await apply(request)
+    result.innerText = JSON.stringify(reply)
     button.disabled = false
   })
 }
@@ -64,6 +69,18 @@ function parse(text) {
 async function count() {
   const stats = await fetch('/plugin/coauthor/stats').then(res => res.json())
   return `${stats.count} counts`
+}
+
+async function apply(request) {
+  const options = {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  }
+  return await fetch('/plugin/coauthor/apply', options).then(res => res.json())
 }
 
 export const coauthor = typeof window == 'undefined' ? { expand } : undefined
