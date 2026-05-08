@@ -31,7 +31,7 @@ const bind = ($item, item) => {
     button.disabled = true
     // result.innerText = await count()
     const reply = await apply(request)
-    result.innerText = JSON.stringify(reply)
+    result.innerHTML = tabulate(reply)
     button.disabled = false
   })
 }
@@ -64,6 +64,17 @@ function parse(text) {
     }
   }
   return { report, todo }
+}
+
+function tabulate(reply) {
+  const html = ['<table width=100% style="border-collapse: collapse;">']
+  const td = entries =>
+    entries.map(([key, value]) => `<td style="border:1px solid black; padding:4px;">${key}<br>${value}`)
+  for (const row of reply) {
+    html.push(`<tr>${td(Object.entries(row))}`)
+  }
+  html.push('</table>')
+  return html.flat().join('\n')
 }
 
 async function count() {
