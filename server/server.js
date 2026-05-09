@@ -77,6 +77,12 @@ function startServer(params) {
       return page
     }
   })
+
+  app.get('/plugin/coauthor/perform', cors, (req, res, next) => {
+    const todo = req.body
+    console.log('perform', todo)
+    return res.json({ count: ++count })
+  })
 }
 
 export { startServer }
