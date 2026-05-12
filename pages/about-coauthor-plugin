@@ -10,6 +10,16 @@
       "type": "coauthor",
       "id": "f988dd21959fa27f",
       "text": "Word Count\nSTORY story-unfolding\nSTATS words"
+    },
+    {
+      "type": "paragraph",
+      "id": "0f42e57f97026507",
+      "text": "We expose some of these functions through an endpoint invoked with the Mech's PLUGIN block."
+    },
+    {
+      "type": "mech",
+      "id": "df822db733b434bd",
+      "text": "CLICK\n PLUGIN coauthor\n  HELLO\n  UPTIME"
     }
   ],
   "journal": [
@@ -71,6 +81,43 @@
         "text": "Word Count\nSTORY story-unfolding\nSTATS words"
       },
       "date": 1778039426891
+    },
+    {
+      "type": "fork",
+      "date": 1778514034069
+    },
+    {
+      "item": {
+        "type": "paragraph",
+        "id": "0f42e57f97026507",
+        "text": "We expose some of these functions through an endpoint invoked with the Mech's PLUGIN block."
+      },
+      "id": "0f42e57f97026507",
+      "type": "add",
+      "after": "f988dd21959fa27f",
+      "site": "localhost:3000",
+      "date": 1778514034068
+    },
+    {
+      "item": {
+        "type": "mech",
+        "id": "df822db733b434bd",
+        "text": "CLICK\n PLUGIN coauthor\n  HELLO\n  UPTIME"
+      },
+      "id": "df822db733b434bd",
+      "type": "add",
+      "after": "0f42e57f97026507",
+      "date": 1778514648634
+    },
+    {
+      "type": "edit",
+      "id": "df822db733b434bd",
+      "item": {
+        "type": "mech",
+        "id": "df822db733b434bd",
+        "text": "CLICK\n PLUGIN coauthor\n  HELLO\n  UPTIME"
+      },
+      "date": 1778514698590
     }
   ],
   "plugin": "coauthor"

@@ -4,6 +4,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as process from 'node:process'
+import { status, trouble, blocks } from './blocks.js'
 
 function cors(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
@@ -79,10 +80,56 @@ function startServer(params) {
   })
 
   app.get('/plugin/coauthor/perform', cors, (req, res, next) => {
-    const todo = req.body
-    console.log('perform', todo)
+    const todo = JSON.parse(atob(req.query.todo))
+    console.log(todo)
     return res.json({ count: ++count })
   })
+
+  app.get('/plugin/coauthor/mech', cors, (req, res, next) => {
+    try {
+      const mech = JSON.parse(atob(req.query.mech || 'W10='))
+      const share = JSON.parse(atob(req.query.state || 'W10='))
+      const context = { argv, run }
+      const state = Object.assign(share, { context })
+      run(mech, state)
+        .then(() => {
+          delete state.context
+          return res.json({ mech, state })
+        })
+        .catch(err => {
+          console.log(err)
+          return res.json({ err: err.message + ' from promise' })
+        })
+    } catch (err) {
+      return res.json({ err: err.message + ' from try' })
+    }
+  })
+
+  // I N T E R P R E T E R
+
+  async function run(nest, state = {}, mock) {
+    // const scope = nest.slice()
+    // while (scope.length) {
+    for (let here = 0; here < nest.length; here++) {
+      // const code = scope.shift()
+      const code = nest[here]
+      if ('command' in code) {
+        const command = code.command
+        const elem = code
+        const [op, ...args] = code.command.split(/ +/)
+        const next = nest[here + 1]
+        const body = next && 'command' in next ? null : nest[++here]
+        const stuff = { command, op, args, body, elem, state }
+        if (state.debug) console.log(stuff)
+        if (blocks[op]) await blocks[op].emit.apply(null, [stuff])
+        else if (op.match(/^[A-Z]+$/)) trouble(elem, `${op} doesn't name a block we know.`)
+        else if (code.command.match(/\S/)) trouble(elem, `Expected line to begin with all-caps keyword.`)
+      } else if (Array.isArray(code)) {
+        console.warn(`this can't happen.`)
+        run(code, state) // when does this even happen?
+      }
+    }
+  }
 }
 
 export { startServer }
