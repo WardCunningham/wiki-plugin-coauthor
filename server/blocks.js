@@ -70,15 +70,16 @@ async function from_emit({ elem, command, args, body, state }) {
 
 async function resolve_emit({ elem, args, body, state }) {
   if (!body?.length) return trouble(elem, `FROM expects indented blocks to follow.`)
-  const items = state.page.story.filter(item => item.type == 'reference')
+  const page = state.page
+  const items = page.story.filter(item => item.type == 'reference')
   let resolved = 0
   for (const item of items) {
-    console.log('for', state.context)
     const page = await getPage(state.context.argv.db, item.slug, err => trouble(elem, err))
     state.page = page
     resolved++
     await state.context.run(body, state)
   }
+  state.page = page
   status(elem, `${resolved} pages`)
 }
 
