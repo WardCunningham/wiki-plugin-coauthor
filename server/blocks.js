@@ -2,6 +2,12 @@ import * as fs from 'node:fs/promises'
 
 // API
 
+export const asSlug = title =>
+  title
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '')
+    .toLowerCase()
+
 export function status(elem, message) {
   elem.status = message
 }
@@ -90,6 +96,30 @@ function count_emit({ elem, args, state }) {
   status(elem, `${state.words} words`)
 }
 
+function audit_emit({ elem, args, state }) {
+  if (args.length < 1) return trouble(elem, 'AUDIT expects a way to check each page.')
+  const way = args[0]
+  if (!('page' in state)) return trouble(elem, 'AUDIT expects state.page to be checked, as from RESOLVE')
+  if (!('items' in elem)) elem.items = []
+  const page = state.page
+  const title = page.title
+  const slug = asSlug(title)
+  if (elem.next && asSlug(elem.next) != slug) {
+    if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+    if (elem.next == 'Unspecified Next') elem.items.push(`No Next at [[${elem.prev}]], Want [[${title}]]`)
+    else elem.items.push(`Wrong Next at [[${elem.prev}]], Want [[${title}]].`)
+  }
+  const story = page.story
+  const item = story[story.length - 1]
+  const m = item.text && item.text.match(/Next.*?\[\[(.+?)\]\]/i)
+  elem.prev = title
+  elem.next = m ? m[1] : 'Unspecified Next'
+  if (elem.items.length) {
+    state.items = elem.items
+    status(elem, `${elem.items.length - 1} failed checks`)
+  } else status(elem, 'ok')
+}
+
 // C A T A L O G
 
 export const blocks = {
@@ -98,4 +128,5 @@ export const blocks = {
   FROM: { emit: from_emit },
   RESOLVE: { emit: resolve_emit },
   COUNT: { emit: count_emit },
+  AUDIT: { emit: audit_emit },
 }
