@@ -44,7 +44,7 @@ async function getPage(db, slug, fail) {
     .readFile(`${db}/${slug}`)
     .then(data => JSON.parse(data))
     .catch(err => {
-      return fail(`can't get: ${err.message}`)
+      return fail(err.message)
     })
   return page
 }
@@ -104,18 +104,32 @@ function audit_emit({ elem, args, state }) {
   const page = state.page
   const title = page.title
   const slug = asSlug(title)
-  if (elem.next && asSlug(elem.next) != slug) {
-    if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
-    if (elem.next == 'Unspecified Next') elem.items.push(`No Next at [[${elem.prev}]], Want [[${title}]]`)
-    else elem.items.push(`Wrong Next at [[${elem.prev}]], Want [[${title}]].`)
-  }
   const story = page.story
-  const item = story[story.length - 1]
-  const m = item.text && item.text.match(/Next.*?\[\[(.+?)\]\]/i)
-  elem.prev = title
-  elem.next = m ? m[1] : 'Unspecified Next'
+
+  switch (way) {
+    case 'next':
+      if (elem.next && asSlug(elem.next) != slug) {
+        if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+        if (elem.next == 'Unspecified Next') elem.items.push(`No Next at [[${elem.prev}]], Want [[${title}]]`)
+        else elem.items.push(`Wrong Next at [[${elem.prev}]], Want [[${title}]].`)
+      }
+      const item = story[story.length - 1]
+      const m = item.text && item.text.match(/Next.*?\[\[(.+?)\]\]/i)
+      elem.prev = title
+      elem.next = m ? m[1] : 'Unspecified Next'
+      break
+    case 'markdown':
+      const items = story.filter(item => item.type == 'markdown')
+      if (items.length) {
+        if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+        elem.items.push(`Unexpected ${items.length} items at [[${title}]].`)
+      }
+      break
+    default:
+      if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" is not a way to check.`)
+  }
+
   if (elem.items.length) {
-    state.items = elem.items
     status(elem, `${elem.items.length - 1} failed checks`)
   } else status(elem, 'ok')
 }
