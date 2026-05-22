@@ -90,10 +90,22 @@ async function resolve_emit({ elem, args, body, state }) {
 }
 
 function count_emit({ elem, args, state }) {
-  const words = (sum, each) => sum + each.text.split(/\W+/).length
-  const count = state.page.story.filter(item => 'text' in item).reduce(words, 0)
-  state.words = (state.words ?? 0) + count
-  status(elem, `${state.words} words`)
+  if (!args.length) return trouble(elem, `COUNT expects a way to count.`)
+  const way = args[0]
+  let count = 0
+  switch (way) {
+    case 'words':
+      const words = (sum, each) => sum + each.text.split(/\W+/).length
+      count = state.page.story.filter(item => 'text' in item).reduce(words, 0)
+      break
+    case 'items':
+      count = state.page.story.length
+      break
+    default:
+      return trouble(elem, `"${way}" is not a way to count.`)
+  }
+  elem.count = (elem.count ?? 0) + count
+  status(elem, `${elem.count} ${way}`)
 }
 
 function audit_emit({ elem, args, state }) {
