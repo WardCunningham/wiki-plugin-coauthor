@@ -118,6 +118,8 @@ function audit_emit({ elem, args, state }) {
   const slug = asSlug(title)
   const story = page.story
 
+  let links, count
+
   switch (way) {
     case 'next':
       if (elem.next && asSlug(elem.next) != slug) {
@@ -130,11 +132,31 @@ function audit_emit({ elem, args, state }) {
       elem.prev = title
       elem.next = m ? m[1] : 'Unspecified Next'
       break
+    case 'external':
+      links = text => (text.match(/\[http.+? .+?\]/g) || []).length
+      count = story.reduce((sum, each) => sum + links(each.text ?? ''), 0)
+      if (count) {
+        if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+        elem.items.push(`External links (${count}) at [[${title}]].`)
+      }
+      break
+    case 'links':
+      links = text => (text.match(/\[\[.+?\]\]/g) || []).length
+      count = story.reduce((sum, each) => sum + links(each.text ?? ''), 0)
+      const limits = (args[1] ?? '0').split('-')
+      const min = Number(limits[0])
+      const max = Number(limits[1] ?? limits[0])
+      if (count < min || count > max) {
+        if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${args.join(' ')}" failed these checks.`)
+        if (count < min) elem.items.push(`Too few links (${count}) at [[${title}]].`)
+        if (count > max) elem.items.push(`Too many links (${count}) at [[${title}]].`)
+      }
+      break
     case 'markdown':
       const items = story.filter(item => item.type == 'markdown')
       if (items.length) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
-        elem.items.push(`Unexpected ${items.length} items at [[${title}]].`)
+        elem.items.push(`Unexpected items (${items.length})  at [[${title}]].`)
       }
       break
     default:
