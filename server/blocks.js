@@ -18,6 +18,12 @@ export function trouble(elem, message) {
   elem.trouble = message
 }
 
+export function checks(elem, section) {
+  if (!('items' in elem)) elem.items = []
+  if (!elem.items.length) elem.items.push(`<h3>${section}`)
+  return elem.items
+}
+
 // U T I L I T Y
 
 export function ago(then, now = Date.now()) {
@@ -46,7 +52,7 @@ async function getPage(db, slug, fail) {
     .readFile(`${db}/${slug}`)
     .then(data => JSON.parse(data))
     .catch(err => {
-      return fail(err.message)
+      return fail('no page')
     })
   return page
 }
@@ -77,18 +83,29 @@ async function from_emit({ elem, command, args, body, state }) {
 }
 
 async function resolve_emit({ elem, args, body, state }) {
+  const way = 'reference'
+  const checking = `"RESOLVE ${way}" missing pages.`
   if (!body?.length) return trouble(elem, `FROM expects indented blocks to follow.`)
   const page = state.page
   const items = page.story.filter(item => item.type == 'reference')
-  let resolved = 0
+  elem.resolved = 0
   for (const item of items) {
-    const page = await getPage(state.context.argv.db, item.slug, err => trouble(elem, err))
+    const page = await getPage(state.context.argv.db, item.slug, err => {
+      checks(elem, checking).push(`No local page at [[${item.title}]].`)
+      return null
+    })
+    if (!page) continue
+    if (!(page.story || []).length) {
+      checks(elem, checking).push(`Empty page at [[${page.title}]].`)
+      continue
+    }
     state.page = page
-    resolved++
+    elem.resolved++
     await state.context.run(body, state)
   }
   state.page = page
-  status(elem, `${resolved} pages`)
+  if (elem.items.length) status(elem, `${elem.resolved} pages, ${elem.items.length - 1} skipped.`)
+  else status(elem, `${elem.resolved} pages`)
 }
 
 function count_emit({ elem, args, state }) {
