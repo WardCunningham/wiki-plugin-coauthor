@@ -2,6 +2,8 @@ import * as fs from 'node:fs/promises'
 
 // API
 
+export const uniq = (value, index, self) => self.indexOf(value) === index
+
 export const asSlug = title =>
   title
     .replace(/\s/g, '-')
@@ -157,6 +159,17 @@ function audit_emit({ elem, args, state }) {
       if (items.length) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
         elem.items.push(`Unexpected items (${items.length})  at [[${title}]].`)
+      }
+      break
+    case 'items':
+      const allowed = ['paragraph', 'markdown']
+      const kinds = story
+        .filter(item => !allowed.includes(item.type))
+        .map(item => item.type)
+        .filter(uniq)
+      if (kinds.length) {
+        if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+        elem.items.push(`Unexpected items (${kinds.join(', ')}) at [[${title}]].`)
       }
       break
     default:
