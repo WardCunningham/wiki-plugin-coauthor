@@ -127,7 +127,7 @@ function count_emit({ elem, args, state }) {
   status(elem, `${elem.count} ${way}`)
 }
 
-function audit_emit({ elem, args, state }) {
+function audit_emit({ elem, args, body, state }) {
   if (args.length < 1) return trouble(elem, 'AUDIT expects a way to check each page.')
   const way = args[0]
   if (!('page' in state)) return trouble(elem, 'AUDIT expects state.page to be checked, as from RESOLVE')
@@ -179,7 +179,8 @@ function audit_emit({ elem, args, state }) {
       }
       break
     case 'items':
-      const allowed = ['paragraph', 'markdown']
+      const allowed = ['paragraph']
+      if (body) allowed.push(...body.map(tree => tree.command))
       const kinds = story
         .filter(item => !allowed.includes(item.type))
         .map(item => item.type)
