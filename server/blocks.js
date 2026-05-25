@@ -160,15 +160,25 @@ function audit_emit({ elem, args, body, state }) {
       }
       break
     case 'links':
-      links = text => (text.match(/\[\[.+?\]\]/g) || []).length
-      count = story.reduce((sum, each) => sum + links(each.text || ''), 0)
+      links = text => text.match(/\[\[.+?\]\]/g) || []
+      count = story.reduce((sum, each) => sum + links(each.text || '').length, 0)
+      const seen = new Set()
+      const full = story.map(item => item.text || '').join(' ')
+      const dups = links(full)
+        .filter(link => {
+          const dup = seen.has(link)
+          seen.add(link)
+          return dup
+        })
+        .filter(uniq)
       const limits = (args[1] ?? '0').split('-')
       const min = Number(limits[0])
       const max = Number(limits[1] ?? limits[0])
-      if (count < min || count > max) {
+      if (count < min || count > max || dups.length) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${args.join(' ')}" failed these checks.`)
         if (count < min) elem.items.push(`Too few links (${count}) at [[${title}]].`)
         if (count > max) elem.items.push(`Too many links (${count}) at [[${title}]].`)
+        if (dups.length) elem.items.push(`Duplicate links (${dups.join(', ')}) at [[${title}]]`)
       }
       break
     case 'markdown':
@@ -181,13 +191,13 @@ function audit_emit({ elem, args, body, state }) {
     case 'items':
       const allowed = ['paragraph']
       if (body) allowed.push(...body.map(tree => tree.command))
-      const kinds = story
+      const types = story
         .filter(item => !allowed.includes(item.type))
         .map(item => item.type)
         .filter(uniq)
-      if (kinds.length) {
+      if (types.length) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
-        elem.items.push(`Unexpected items (${kinds.join(', ')}) at [[${title}]].`)
+        elem.items.push(`Unexpected items (${types.join(', ')}) at [[${title}]].`)
       }
       break
     default:
