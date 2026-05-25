@@ -85,8 +85,6 @@ function startServer(params) {
     return res.json({ count: ++count })
   })
 
-  let running = null
-
   app.get('/plugin/coauthor/mech', cors, (req, res, next) => {
     try {
       const mech = JSON.parse(atob(req.query.mech || 'W10='))
@@ -104,8 +102,8 @@ function startServer(params) {
           return res.json({ mech, state })
         })
         .catch(err => {
-          running.trouble = err.message
-          console.log({ err, mech, state, running })
+          if ('running' in state) state.running.trouble = err.message
+          console.log({ err, mech, state })
           return res.json({ mech, state })
         })
     } catch (err) {
@@ -122,9 +120,9 @@ function startServer(params) {
       // const code = scope.shift()
       const code = nest[here]
       if ('command' in code) {
-        running = code
         const command = code.command
         const elem = code
+        state.running = elem
         const [op, ...args] = code.command.split(/ +/)
         const next = nest[here + 1]
         const body = next && 'command' in next ? null : nest[++here]

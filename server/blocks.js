@@ -104,7 +104,7 @@ async function resolve_emit({ elem, args, body, state }) {
     await state.context.run(body, state)
   }
   state.page = page
-  if (elem.items.length) status(elem, `${elem.resolved} pages, ${elem.items.length - 1} skipped.`)
+  if (elem.items?.length) status(elem, `${elem.resolved} pages, ${elem.items.length - 1} skipped.`)
   else status(elem, `${elem.resolved} pages`)
 }
 
@@ -146,14 +146,14 @@ function audit_emit({ elem, args, body, state }) {
         if (elem.next == 'Unspecified Next') elem.items.push(`No Next at [[${elem.prev}]], Want [[${title}]]`)
         else elem.items.push(`Wrong Next at [[${elem.prev}]], Want [[${title}]].`)
       }
-      const item = story[story.length - 1]
-      const m = item.text && item.text.match(/Next.*?\[\[(.+?)\]\]/i)
+      const item = story.findLast(item => item.type == 'paragraph')
+      const m = item?.text && item.text.match(/Next.*?\[\[(.+?)\]\]/i)
       elem.prev = title
       elem.next = m ? m[1] : 'Unspecified Next'
       break
     case 'external':
       links = text => (text.match(/\[http.+? .+?\]/g) || []).length
-      count = story.reduce((sum, each) => sum + links(each.text ?? ''), 0)
+      count = story.reduce((sum, each) => sum + links(each.text || ''), 0)
       if (count) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
         elem.items.push(`External links (${count}) at [[${title}]].`)
@@ -161,7 +161,7 @@ function audit_emit({ elem, args, body, state }) {
       break
     case 'links':
       links = text => (text.match(/\[\[.+?\]\]/g) || []).length
-      count = story.reduce((sum, each) => sum + links(each.text ?? ''), 0)
+      count = story.reduce((sum, each) => sum + links(each.text || ''), 0)
       const limits = (args[1] ?? '0').split('-')
       const min = Number(limits[0])
       const max = Number(limits[1] ?? limits[0])
