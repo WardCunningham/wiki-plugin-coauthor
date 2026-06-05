@@ -182,9 +182,16 @@ function audit_emit({ elem, args, body, state }) {
       }
       break
     case 'markdown':
-      const items = story.filter(item => item.type == 'markdown')
+      const ok = text => {
+        if (text.match(/[^_]_.+?_[^_]/)) return true
+        if (text.match(/\*\*.+?\*\*/)) return true
+        if (text.match(/^>/)) return true
+        return false
+      }
+      const items = story.filter(item => item.type == 'markdown').filter(item => !ok(item.text))
       if (items.length) {
         if (!elem.items.length) elem.items.push(`<h3>"AUDIT ${way}" failed these checks.`)
+        console.log('markdown', items)
         elem.items.push(`Unexpected items (${items.length})  at [[${title}]].`)
       }
       break
