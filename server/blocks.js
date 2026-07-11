@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises'
+import { Graph } from './graph.js'
 
 // API
 
@@ -46,11 +47,19 @@ export function ago(then, now = Date.now()) {
   return `${sign}${year} years`
 }
 
-async function getPage(db, slug, fail) {
-  if (!slug.match(/[a-z-]+/)) return fail('bad slug')
-  const page = await fs
-    .readFile(`${db}/${slug}`)
-    .then(data => JSON.parse(data))
+// async function getPage(db, slug, fail) {
+//   if (!slug.match(/^[a-z-]+$/)) return fail('bad slug')
+//   const page = await fs
+//     .readFile(`${db}/${slug}`)
+//     .then(data => JSON.parse(data))
+//     .catch(err => {
+//       return fail('no page')
+//     })
+//   return page
+// }
+async function getPage(site, slug, fail) {
+  const page = await fetch(`http://${site}/${slug}.json`)
+    .then(res => res.json())
     .catch(err => {
       return fail('no page')
     })
@@ -70,10 +79,17 @@ function uptime_emit({ elem, args, state }) {
 }
 
 async function from_emit({ elem, command, args, body, state }) {
-  if (!args[0]) return trouble(elem, `FROM expects slug wiki page on this server.`)
+  if (!args[0]) return trouble(elem, `FROM expects site/slug as way to federated wiki page.`)
   if (!body?.length) return trouble(elem, `FROM expects indented blocks to follow.`)
-  const page = await getPage(state.context.argv.db, args[0], err => trouble(elem, err))
+  let site, slug
+  if (args[0].includes('/')) {
+    ;[site, slug] = args[0].split(/\//)
+  } else {
+    ;[site, slug] = ['localhost', args[0]]
+  }
+  const page = await getPage(site, slug, err => trouble(elem, err))
   state.page = page
+  state.site = site
   const date = page.journal?.findLast(item => item.type != 'fork' && item.date).date
   if (date) {
     const age = ago(date)
@@ -90,7 +106,7 @@ async function resolve_emit({ elem, args, body, state }) {
   const items = page.story.filter(item => item.type == 'reference')
   elem.resolved = 0
   for (const item of items) {
-    const page = await getPage(state.context.argv.db, item.slug, err => {
+    const page = await getPage(state.site, item.slug, err => {
       checks(elem, checking).push(`No local page at [[${item.title}]].`)
       return null
     })
@@ -216,6 +232,29 @@ function audit_emit({ elem, args, body, state }) {
   } else status(elem, 'ok')
 }
 
+function garden_emit({ elem, args, body, state }) {
+  if (!('page' in state)) return trouble(elem, 'GARDEN expects state.page to be a story, as from RESOLVE')
+  if (!('items' in elem)) elem.items = []
+  if (!('graph' in elem)) elem.graph = new Graph()
+  if (!('aspect' in state)) state.aspect = []
+  if (!('aspect' in elem)) {
+    elem.aspect = { id: state.site, result: [{ name: elem.command, graph: elem.graph }] }
+    state.aspect.push(elem.aspect)
+  }
+  const graph = elem.graph
+  const page = state.page
+  const title = page.title
+  const name = title.replaceAll(/\s+/g, '\n')
+  const slug = asSlug(title)
+  // const site = location.host
+  const story = page.story
+  const nodes = graph.nodes.length ? graph.nodes.length : null
+  const nid = graph.addNode('', { name, title, slug })
+  if (nodes) graph.addRel('', nodes - 1, nid)
+  status(elem, `${graph.nodes.length} nodes`)
+  console.log({ elem, nodes: graph.nodes.length })
+}
+
 // C A T A L O G
 
 export const blocks = {
@@ -225,4 +264,5 @@ export const blocks = {
   RESOLVE: { emit: resolve_emit },
   COUNT: { emit: count_emit },
   AUDIT: { emit: audit_emit },
+  GARDEN: { emit: garden_emit },
 }
