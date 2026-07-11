@@ -61,7 +61,7 @@ async function getPage(site, slug, fail) {
   const page = await fetch(`http://${site}/${slug}.json`)
     .then(res => res.json())
     .catch(err => {
-      return fail('no page')
+      return fail(`Can't find page for "${slug}".`)
     })
   return page
 }
@@ -81,13 +81,15 @@ function uptime_emit({ elem, args, state }) {
 async function from_emit({ elem, command, args, body, state }) {
   if (!args[0]) return trouble(elem, `FROM expects site/slug as way to federated wiki page.`)
   if (!body?.length) return trouble(elem, `FROM expects indented blocks to follow.`)
+  const origin = new URL(state.context.argv.url).host
   let site, slug
   if (args[0].includes('/')) {
     ;[site, slug] = args[0].split(/\//)
   } else {
-    ;[site, slug] = ['localhost', args[0]]
+    ;[site, slug] = [origin, args[0]]
   }
   const page = await getPage(site, slug, err => trouble(elem, err))
+  if (!page) return
   state.page = page
   state.site = site
   const date = page.journal?.findLast(item => item.type != 'fork' && item.date).date
@@ -243,13 +245,14 @@ function garden_emit({ elem, args, body, state }) {
   }
   const graph = elem.graph
   const page = state.page
+  const site = state.site
   const title = page.title
   const name = title.replaceAll(/\s+/g, '\n')
   const slug = asSlug(title)
   // const site = location.host
   const story = page.story
   const nodes = graph.nodes.length ? graph.nodes.length : null
-  const nid = graph.addNode('', { name, title, slug })
+  const nid = graph.addNode('', { name, title, site, slug })
   if (nodes) graph.addRel('', nodes - 1, nid)
   status(elem, `${graph.nodes.length} nodes`)
   console.log({ elem, nodes: graph.nodes.length })
