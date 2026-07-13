@@ -34,7 +34,7 @@ export function links(page) {
         links.push(item.title)
       case 'paragraph':
       case 'markdown':
-        links.push(...(item.text.matchAll(/\[\[(.+?)\]\]/g) || []).map(m => m[1]))
+        links.push(...[...item.text.matchAll(/\[\[(.+?)\]\]/g)].map(m => m[1]))
     }
   }
   return links.filter(uniq).sort()
