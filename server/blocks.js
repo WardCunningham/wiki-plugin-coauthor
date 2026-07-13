@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises'
 import { Graph } from './graph.js'
-import { X509Certificate } from 'node:crypto'
 
 // API
 
@@ -35,7 +34,7 @@ export function links(page) {
         links.push(item.title)
       case 'paragraph':
       case 'markdown':
-        links.push(...item.text.matchAll(/\[\[(.+?)\]\]/g).map(m => m[1]))
+        links.push(...(item.text.matchAll(/\[\[(.+?)\]\]/g) || []).map(m => m[1]))
     }
   }
   return links.filter(uniq).sort()
