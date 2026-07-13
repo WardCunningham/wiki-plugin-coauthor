@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises'
 import { Graph } from './graph.js'
+import { X509Certificate } from 'node:crypto'
 
 // API
 
@@ -23,6 +24,21 @@ export function checks(elem, section) {
   if (!('items' in elem)) elem.items = []
   if (!elem.items.length) elem.items.push(`<h3>${section}`)
   return elem.items
+}
+
+export function links(page) {
+  const links = []
+  for (const item of page.story) {
+    if ((item.text || '').match(/^\s*next\b/i)) continue
+    switch (item.type) {
+      case 'reference':
+        links.push(item.title)
+      case 'paragraph':
+      case 'markdown':
+        links.push(...item.text.matchAll(/\[\[(.+?)\]\]/g).map(m => m[1]))
+    }
+  }
+  return links.filter(uniq).sort()
 }
 
 // U T I L I T Y
@@ -243,19 +259,35 @@ function garden_emit({ elem, args, body, state }) {
     elem.aspect = { id: state.site, result: [{ name: elem.command, graph: elem.graph }] }
     state.aspect.push(elem.aspect)
   }
+  let clicks = 0
+  if (args.length > 0 && args[0].match(/^\d+$/)) clicks = Number(args[0])
   const graph = elem.graph
   const page = state.page
   const site = state.site
   const title = page.title
   const name = title.replaceAll(/\s+/g, '\n')
   const slug = asSlug(title)
-  // const site = location.host
-  const story = page.story
   const nodes = graph.nodes.length ? graph.nodes.length : null
-  const nid = graph.addNode('', { name, title, site, slug })
-  if (nodes) graph.addRel('', nodes - 1, nid)
+  const nid = graph.addNode('', { name, title, site, slug, color: 'lightblue' })
+  if ('nid' in elem) graph.addRel('', elem.nid, nid)
+  elem.nid = nid
+  click(clicks, page, nid, graph)
   status(elem, `${graph.nodes.length} nodes`)
-  console.log({ elem, nodes: graph.nodes.length })
+
+  async function click(clicks, page, nid, graph) {
+    if (clicks < 1) return
+    const todo = links(page)
+    for (const title of todo) {
+      const name = title.replaceAll(/\s+/g, '\n')
+      const slug = asSlug(title)
+      const site = state.site
+      const nnid = graph.addUniqNode('', { name, title, site, slug })
+      graph.addRel('', nid, nnid)
+      if (clicks < 2) return
+      const target = await getPage(site, slug, err => console.log(err))
+      if (target) click(clicks - 1, target, nnid, graph)
+    }
+  }
 }
 
 // C A T A L O G
