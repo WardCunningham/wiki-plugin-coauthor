@@ -249,9 +249,12 @@ function audit_emit({ elem, args, body, state }) {
   } else status(elem, 'ok')
 }
 
-function garden_emit({ elem, args, body, state }) {
+function garden_emit({ elem, args, state }) {
   if (!('page' in state)) return trouble(elem, 'GARDEN expects state.page to be a story, as from RESOLVE')
-  if (!('items' in elem)) elem.items = []
+  if (!('items' in elem)) {
+    console.log(elem.command)
+    elem.items = []
+  }
   if (!('graph' in elem)) elem.graph = new Graph()
   if (!('aspect' in state)) state.aspect = []
   if (!('aspect' in elem)) {
@@ -268,22 +271,38 @@ function garden_emit({ elem, args, body, state }) {
   const slug = asSlug(title)
   const nodes = graph.nodes.length ? graph.nodes.length : null
   const nid = graph.addNode('', { name, title, site, slug, color: 'lightblue' })
-  if ('nid' in elem) graph.addRel('', elem.nid, nid)
+  if ('nid' in elem) graph.addRel('story', elem.nid, nid)
   elem.nid = nid
   click(clicks, page, nid, graph)
   status(elem, `${graph.nodes.length} nodes`)
 
   async function click(clicks, page, nid, graph) {
+    const done = (site, slug) => {
+      const node = graph.nodes.find(node => node.props.slug == slug)
+      if (!node) return null
+      const rel = node.rels?.find(rel => rel.from == nid)
+      if (!rel) return null
+      return graph.nodes.indexOf(node)
+    }
     if (clicks < 1) return
     const todo = links(page)
     for (const title of todo) {
       const name = title.replaceAll(/\s+/g, '\n')
       const slug = asSlug(title)
       const site = state.site
-      const nnid = graph.addUniqNode('', { name, title, site, slug })
-      graph.addRel('', nid, nnid)
-      if (clicks < 2) return
-      const target = await getPage(site, slug, err => console.log(err))
+      let nnid = done(site, slug)
+      if (nnid == null) {
+        nnid = graph.addUniqNode('', { name, title, site, slug })
+        graph.addRel('', nid, nnid)
+      } else {
+        console.log('dup', slug)
+      }
+      if (clicks < 2) continue
+      const target = await getPage(site, slug, err => {
+        graph.nodes[nnid].props.color = 'white'
+        console.log(err)
+      })
+
       if (target) click(clicks - 1, target, nnid, graph)
     }
   }
