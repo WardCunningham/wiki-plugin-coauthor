@@ -72,12 +72,24 @@ export function ago(then, now = Date.now()) {
 //     })
 //   return page
 // }
-async function getPage(site, slug, fail) {
-  const page = await fetch(`http://${site}/${slug}.json`)
-    .then(res => res.json())
-    .catch(err => {
-      return fail(`Can't find page for "${slug}".`)
-    })
+async function getPage(site, slug, fail, state = null) {
+  let page
+  if (state && site in state.sites) {
+    console.log('local', site, slug)
+    page = await fs
+      .readFile(`${state.sites[site]}/${slug}`)
+      .then(data => JSON.parse(data))
+      .catch(err => {
+        return fail(`Can't find page for "${slug}".`)
+      })
+  } else {
+    console.log('remote', site, slug)
+    page = await fetch(`http://${site}/${slug}.json`)
+      .then(res => res.json())
+      .catch(err => {
+        return fail(`Can't find page for "${slug}".`)
+      })
+  }
   return page
 }
 
@@ -103,7 +115,7 @@ async function from_emit({ elem, command, args, body, state }) {
   } else {
     ;[site, slug] = [origin, args[0]]
   }
-  const page = await getPage(site, slug, err => trouble(elem, err))
+  const page = await getPage(site, slug, err => trouble(elem, err), state)
   if (!page) return
   state.page = page
   state.site = site
@@ -123,10 +135,15 @@ async function resolve_emit({ elem, args, body, state }) {
   const items = page.story.filter(item => item.type == 'reference')
   elem.resolved = 0
   for (const item of items) {
-    const page = await getPage(state.site, item.slug, err => {
-      checks(elem, checking).push(`No local page at [[${item.title}]].`)
-      return null
-    })
+    const page = await getPage(
+      state.site,
+      item.slug,
+      err => {
+        checks(elem, checking).push(`No local page at [[${item.title}]].`)
+        return null
+      },
+      state,
+    )
     if (!page) continue
     if (!(page.story || []).length) {
       checks(elem, checking).push(`Empty page at [[${page.title}]].`)
@@ -298,10 +315,15 @@ function garden_emit({ elem, args, state }) {
         console.log('dup', slug)
       }
       if (clicks < 2) continue
-      const target = await getPage(site, slug, err => {
-        graph.nodes[nnid].props.color = 'white'
-        console.log(err)
-      })
+      const target = await getPage(
+        site,
+        slug,
+        err => {
+          graph.nodes[nnid].props.color = 'white'
+          console.log(err)
+        },
+        state,
+      )
 
       if (target) click(clicks - 1, target, nnid, graph)
     }

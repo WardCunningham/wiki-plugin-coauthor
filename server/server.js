@@ -33,7 +33,7 @@ function startServer(params) {
       reply.push(row)
       switch (row.type) {
         case 'story':
-          const page = await getPage(row.slug)
+          const page = await getPage(row.slug) // handle page absent
           const date = page.journal.findLast(action => action != 'fork').date
           row.age = `${((Date.now() - date) / (24 * 60 * 60 * 1000)).toFixed(2)} days`
           state.items = page.story.filter(item => item.type == 'reference')
@@ -126,6 +126,9 @@ function startServer(params) {
         const [op, ...args] = code.command.split(/ +/)
         const next = nest[here + 1]
         const body = next && 'command' in next ? null : nest[++here]
+        state.sites = {} // domain => file path
+        state.sites[new URL(state.context.argv.url).host] = state.context.argv.db
+        // possibly do more for whole pod
         const stuff = { command, op, args, body, elem, state }
         if (state.debug) console.log(stuff)
         if (blocks[op]) await blocks[op].emit.apply(null, [stuff])
