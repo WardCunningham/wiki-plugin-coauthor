@@ -3,8 +3,7 @@
 
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import * as process from 'node:process'
-import { status, trouble, blocks } from './blocks.js'
+import { trouble, blocks } from './blocks.js'
 
 function cors(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
@@ -16,6 +15,7 @@ let count = 0
 function startServer(params) {
   var app = params.app,
     argv = params.argv
+  const asyncpeers = peers()
 
   const origin = argv.url.split(/\/\//)[1]
 
@@ -85,12 +85,15 @@ function startServer(params) {
     return res.json({ count: ++count })
   })
 
-  app.get('/plugin/coauthor/mech', cors, (req, res, next) => {
+  app.get('/plugin/coauthor/mech', cors, async (req, res, next) => {
+    const sites = await asyncpeers
     try {
       const mech = JSON.parse(atob(req.query.mech || 'W10='))
       const share = JSON.parse(atob(req.query.state || 'W10='))
       const context = { argv, run }
-      const state = Object.assign(share, { context })
+      // state.sites = {} // domain => file path
+      // state.sites[new URL(state.context.argv.url).host] = state.context.argv.db
+      const state = Object.assign(share, { context, sites })
       run(mech, state)
         .then(() => {
           delete state.context
@@ -126,9 +129,6 @@ function startServer(params) {
         const [op, ...args] = code.command.split(/ +/)
         const next = nest[here + 1]
         const body = next && 'command' in next ? null : nest[++here]
-        state.sites = {} // domain => file path
-        state.sites[new URL(state.context.argv.url).host] = state.context.argv.db
-        // possibly do more for whole pod
         const stuff = { command, op, args, body, elem, state }
         if (state.debug) console.log(stuff)
         if (blocks[op]) await blocks[op].emit.apply(null, [stuff])
@@ -139,6 +139,44 @@ function startServer(params) {
         run(code, state) // when does this even happen?
       }
     }
+  }
+
+  // adapted from wiki-plugin-present
+  async function peers() {
+    // where are going to look for peers
+    const data = path.join(argv.data, '..')
+    // base of peers
+    const peerRoot = path.parse(argv.data).base.split('.').splice(1).join('.')
+    // entry shares same root
+    const isPeer = entry => {
+      const entryRoot = path.parse(entry.name).base.split('.').splice(1).join('.')
+      return peerRoot === entryRoot
+    }
+    const isWiki = entry => {
+      const sitemapPath = path.join(entry.parentPath, entry.name, 'status', 'sitemap.json')
+
+      return new Promise(resolve => {
+        fs.access(sitemapPath, fs.constants.R_OK)
+          .then(() => {
+            resolve(true)
+          })
+          .catch(() => {
+            resolve(false)
+          })
+      })
+    }
+    return await fs
+      .readdir(data, { withFileTypes: true })
+      .then(entries => entries.filter(entry => entry.isDirectory() && isPeer(entry)))
+      .then(async entries => {
+        // only interested if the entry is a wiki
+        const areWiki = await Promise.all(entries.map(isWiki))
+        return entries.filter((item, index) => areWiki[index])
+      })
+      .then(entries =>
+        Object.fromEntries(entries.map(entry => [entry.name, path.join(entry.parentPath, entry.name, 'pages')])),
+      )
+      .catch(error => ({}))
   }
 }
 
